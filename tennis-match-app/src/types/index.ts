@@ -2,16 +2,19 @@
 
 export interface Team {
 	id: number;
+	name: string;
 	members: string[];
+	isActive: boolean;
 }
 
 export interface Match {
-	team1: number;
-	team2: number;
-	scoreTeam1: number;
-	scoreTeam2: number;
+	team1Id: number;
+	team2Id: number;
+	team1Score: number;
+	team2Score: number;
 	winner: number | null;
 	isDraw: boolean;
+	isCompleted: boolean;
 }
 
 export interface AppSettings {
@@ -62,7 +65,7 @@ export interface AppState {
 	teams: Team[];
 	absentTeam: Team;
 	originalTeams: Team[];
-	matches: Record<string, Match>;
+	matches: Match[];
 	settings: AppSettings;
 	teamParticipation: Record<number, boolean>;
 	selectedMembers: Set<string>;

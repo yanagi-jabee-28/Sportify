@@ -62,10 +62,12 @@
 		<!-- Team Management Section -->
 		<section class="team-section" aria-labelledby="team-section-title">
 			<div class="section-header">
-				<h2 id="team-section-title" class="section-title">チーム編成</h2>
-
-				<!-- Team Control Buttons -->
+				<h2 id="team-section-title" class="section-title">チーム編成</h2> <!-- Team Control Buttons -->
 				<div class="team-controls">
+					<button id="editTeamsBtn" class="btn btn-primary" aria-label="チーム構成を編集">
+						✏️ チーム編集
+					</button>
+
 					<button id="resetTeamsBtn" class="btn btn-secondary" aria-label="チーム編成をオリジナル構成に戻す">
 						🔄 オリジナル構成に戻す
 					</button>
@@ -115,19 +117,28 @@
 		<section class="match-section" aria-labelledby="match-section-title">
 			<div class="section-header">
 				<h2 id="match-section-title" class="section-title">対戦表</h2>
-				<div class="match-info">
-					<span class="info-item">
-						<span class="info-label">総試合数:</span>
-						<span id="totalMatches" class="info-value">0</span>
-					</span>
-					<span class="info-item">
-						<span class="info-label">完了:</span>
-						<span id="completedMatches" class="info-value">0</span>
-					</span>
-					<span class="info-item">
-						<span class="info-label">進行率:</span>
-						<span id="progressRate" class="info-value">0%</span>
-					</span>
+
+				<div class="match-controls">
+					<div class="match-info">
+						<span class="info-item">
+							<span class="info-label">総試合数:</span>
+							<span id="totalMatches" class="info-value">0</span>
+						</span>
+						<span class="info-item">
+							<span class="info-label">完了:</span>
+							<span id="completedMatches" class="info-value">0</span>
+						</span>
+						<span class="info-item">
+							<span class="info-label">進行率:</span>
+							<span id="progressRate" class="info-value">0%</span>
+						</span>
+					</div>
+
+					<div class="match-buttons">
+						<button id="clearMatchesBtn" class="btn btn-danger btn-sm" aria-label="全試合結果をクリア">
+							🗑️ 結果クリア
+						</button>
+					</div>
 				</div>
 			</div>
 
@@ -148,8 +159,7 @@
 			<div class="section-header">
 				<h2 id="standings-section-title" class="section-title">順位表</h2>
 			</div>
-
-			<div class="standings-table-container">
+			<div class="standings-container">
 				<table id="standingsTable" class="standings-table" role="table" aria-label="チーム順位表">
 					<thead>
 						<tr>

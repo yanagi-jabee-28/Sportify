@@ -1,6 +1,6 @@
 // 設定ファイル読み込み・管理
 
-import { Config, Team, MatchSettings, TournamentInfo } from '@/types/index.js';
+import { Config, Team, MatchSettings, TournamentInfo } from "@/types/index.js";
 
 /**
  * 設定管理クラス
@@ -8,7 +8,7 @@ import { Config, Team, MatchSettings, TournamentInfo } from '@/types/index.js';
  */
 export class ConfigManager {
 	private config: Config | null = null;
-	private readonly CONFIG_FILE_PATH = '/config.json';
+	private readonly CONFIG_FILE_PATH = "/config.json";
 
 	/**
 	 * 設定ファイルを読み込み
@@ -18,28 +18,31 @@ export class ConfigManager {
 			const response = await fetch(this.CONFIG_FILE_PATH);
 
 			if (!response.ok) {
-				throw new Error(`設定ファイルの読み込みに失敗しました: ${response.status}`);
+				throw new Error(
+					`設定ファイルの読み込みに失敗しました: ${response.status}`,
+				);
 			}
 
 			const configData = await response.json();
 
 			// データの妥当性チェック
 			if (!this.validateConfig(configData)) {
-				throw new Error('設定ファイルの形式が正しくありません');
+				throw new Error("設定ファイルの形式が正しくありません");
 			}
 
 			this.config = configData;
 			return this.config;
-
 		} catch (error) {
-			console.error('Config loading error:', error);
+			console.error("Config loading error:", error);
 
 			// フォールバック設定を返す
 			const fallbackConfig = this.getFallbackConfig();
 			this.config = fallbackConfig;
 
 			// エラー通知
-			this.notifyConfigError(error instanceof Error ? error.message : '不明なエラー');
+			this.notifyConfigError(
+				error instanceof Error ? error.message : "不明なエラー",
+			);
 
 			return fallbackConfig;
 		}
@@ -77,7 +80,7 @@ export class ConfigManager {
 	 * 設定データの妥当性チェック
 	 */
 	private validateConfig(data: unknown): data is Config {
-		if (!data || typeof data !== 'object') {
+		if (!data || typeof data !== "object") {
 			return false;
 		}
 
@@ -85,27 +88,33 @@ export class ConfigManager {
 
 		// チーム配列の確認
 		if (!Array.isArray(config.teams)) {
-			console.error('Config validation error: teams is not an array');
+			console.error("Config validation error: teams is not an array");
 			return false;
 		}
 
 		// 各チームの妥当性チェック
 		for (const team of config.teams) {
 			if (!this.validateTeam(team)) {
-				console.error('Config validation error: invalid team data', team);
+				console.error("Config validation error: invalid team data", team);
 				return false;
 			}
 		}
 
 		// 試合設定の確認
-		if (!config.matchSettings || !this.validateMatchSettings(config.matchSettings)) {
-			console.error('Config validation error: invalid match settings');
+		if (
+			!config.matchSettings ||
+			!this.validateMatchSettings(config.matchSettings)
+		) {
+			console.error("Config validation error: invalid match settings");
 			return false;
 		}
 
 		// 大会情報の確認
-		if (!config.tournamentInfo || !this.validateTournamentInfo(config.tournamentInfo)) {
-			console.error('Config validation error: invalid tournament info');
+		if (
+			!config.tournamentInfo ||
+			!this.validateTournamentInfo(config.tournamentInfo)
+		) {
+			console.error("Config validation error: invalid tournament info");
 			return false;
 		}
 
@@ -116,17 +125,22 @@ export class ConfigManager {
 	 * チームデータの妥当性チェック
 	 */
 	private validateTeam(team: unknown): team is Team {
-		if (!team || typeof team !== 'object') {
+		if (!team || typeof team !== "object") {
 			return false;
 		}
 
 		const t = team as Team;
 
 		return (
-			typeof t.id === 'number' &&
+			typeof t.id === "number" &&
 			t.id > 0 &&
+			typeof t.name === "string" &&
+			t.name.trim().length > 0 &&
+			typeof t.isActive === "boolean" &&
 			Array.isArray(t.members) &&
-			t.members.every(member => typeof member === 'string' && member.trim().length > 0)
+			t.members.every(
+				(member) => typeof member === "string" && member.trim().length > 0,
+			)
 		);
 	}
 
@@ -134,18 +148,18 @@ export class ConfigManager {
 	 * 試合設定の妥当性チェック
 	 */
 	private validateMatchSettings(settings: unknown): settings is MatchSettings {
-		if (!settings || typeof settings !== 'object') {
+		if (!settings || typeof settings !== "object") {
 			return false;
 		}
 
 		const s = settings as MatchSettings;
 
 		return (
-			typeof s.matchPoint === 'number' &&
+			typeof s.matchPoint === "number" &&
 			s.matchPoint > 0 &&
 			s.matchPoint <= 99 &&
-			typeof s.scoringSystem === 'string' &&
-			typeof s.winCondition === 'string'
+			typeof s.scoringSystem === "string" &&
+			typeof s.winCondition === "string"
 		);
 	}
 
@@ -153,18 +167,18 @@ export class ConfigManager {
 	 * 大会情報の妥当性チェック
 	 */
 	private validateTournamentInfo(info: unknown): info is TournamentInfo {
-		if (!info || typeof info !== 'object') {
+		if (!info || typeof info !== "object") {
 			return false;
 		}
 
 		const i = info as TournamentInfo;
 
 		return (
-			typeof i.name === 'string' &&
+			typeof i.name === "string" &&
 			i.name.trim().length > 0 &&
-			typeof i.date === 'string' &&
-			typeof i.location === 'string' &&
-			typeof i.format === 'string'
+			typeof i.date === "string" &&
+			typeof i.location === "string" &&
+			typeof i.format === "string"
 		);
 	}
 
@@ -174,14 +188,14 @@ export class ConfigManager {
 	private getFallbackConfig(): Config {
 		return {
 			teams: [
-				{ id: 1, members: ['チーム1 メンバー1', 'チーム1 メンバー2'] },
-				{ id: 2, members: ['チーム2 メンバー1', 'チーム2 メンバー2'] },
-				{ id: 3, members: ['チーム3 メンバー1', 'チーム3 メンバー2'] },
-				{ id: 4, members: ['チーム4 メンバー1', 'チーム4 メンバー2'] },
-				{ id: 5, members: ['チーム5 メンバー1', 'チーム5 メンバー2'] }
+				{ id: 1, name: "チーム1", members: ["チーム1 メンバー1", "チーム1 メンバー2"], isActive: true },
+				{ id: 2, name: "チーム2", members: ["チーム2 メンバー1", "チーム2 メンバー2"], isActive: true },
+				{ id: 3, name: "チーム3", members: ["チーム3 メンバー1", "チーム3 メンバー2"], isActive: true },
+				{ id: 4, name: "チーム4", members: ["チーム4 メンバー1", "チーム4 メンバー2"], isActive: true },
+				{ id: 5, name: "チーム5", members: ["チーム5 メンバー1", "チーム5 メンバー2"], isActive: true },
 			],
 			matchSettings: this.getDefaultMatchSettings(),
-			tournamentInfo: this.getDefaultTournamentInfo()
+			tournamentInfo: this.getDefaultTournamentInfo(),
 		};
 	}
 
@@ -190,11 +204,11 @@ export class ConfigManager {
 	 */
 	private getDefaultMatchSettings(): MatchSettings {
 		return {
-			scoringSystem: 'points',
-			winCondition: 'highestScore',
+			scoringSystem: "points",
+			winCondition: "highestScore",
 			maxSetsPerMatch: 3,
 			pointsPerSet: 6,
-			matchPoint: 7
+			matchPoint: 7,
 		};
 	}
 
@@ -203,13 +217,13 @@ export class ConfigManager {
 	 */
 	private getDefaultTournamentInfo(): TournamentInfo {
 		const today = new Date();
-		const dateStr = today.toLocaleDateString('ja-JP');
+		const dateStr = today.toLocaleDateString("ja-JP");
 
 		return {
-			name: 'テニス大会',
+			name: "テニス大会",
 			date: dateStr,
-			location: 'テニスコート',
-			format: '総当たり戦'
+			location: "テニスコート",
+			format: "総当たり戦",
 		};
 	}
 
@@ -217,11 +231,11 @@ export class ConfigManager {
 	 * 設定読み込みエラーを通知
 	 */
 	private notifyConfigError(message: string): void {
-		const event = new CustomEvent('showToast', {
+		const event = new CustomEvent("showToast", {
 			detail: {
 				message: `設定読み込みエラー: ${message}`,
-				type: 'warning'
-			}
+				type: "warning",
+			},
 		});
 		document.dispatchEvent(event);
 	}
@@ -234,15 +248,15 @@ export class ConfigManager {
 
 		this.config.matchSettings = {
 			...this.config.matchSettings,
-			...newSettings
+			...newSettings,
 		};
 
 		// 設定変更を通知
-		const event = new CustomEvent('configChange', {
+		const event = new CustomEvent("configChange", {
 			detail: {
-				type: 'matchSettings',
-				settings: this.config.matchSettings
-			}
+				type: "matchSettings",
+				settings: this.config.matchSettings,
+			},
 		});
 		document.dispatchEvent(event);
 	}
@@ -256,11 +270,11 @@ export class ConfigManager {
 		this.config.teams = [...newTeams];
 
 		// 設定変更を通知
-		const event = new CustomEvent('configChange', {
+		const event = new CustomEvent("configChange", {
 			detail: {
-				type: 'teams',
-				teams: this.config.teams
-			}
+				type: "teams",
+				teams: this.config.teams,
+			},
 		});
 		document.dispatchEvent(event);
 	}
@@ -269,11 +283,11 @@ export class ConfigManager {
 	 * デバッグ用: 設定をコンソールに出力
 	 */
 	debugLogConfig(): void {
-		console.group('⚙️ Config Debug');
-		console.log('Config loaded:', !!this.config);
-		console.log('Teams:', this.getTeams());
-		console.log('Match Settings:', this.getMatchSettings());
-		console.log('Tournament Info:', this.getTournamentInfo());
+		console.group("⚙️ Config Debug");
+		console.log("Config loaded:", !!this.config);
+		console.log("Teams:", this.getTeams());
+		console.log("Match Settings:", this.getMatchSettings());
+		console.log("Tournament Info:", this.getTournamentInfo());
 		console.groupEnd();
 	}
 }

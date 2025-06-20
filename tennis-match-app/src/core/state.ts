@@ -5,8 +5,8 @@ import {
 	Team,
 	Match,
 	AppSettings,
-	FormationData
-} from '@/types/index.js';
+	FormationData,
+} from "@/types/index.js";
 
 /**
  * アプリケーション状態管理クラス
@@ -14,9 +14,9 @@ import {
  */
 export class AppStateManager {
 	private state: AppState;
-	private readonly STORAGE_KEY = 'tennisMatchData';
-	private readonly PARTICIPATION_KEY = 'teamParticipation';
-	private readonly FORMATIONS_KEY = 'savedFormations';
+	private readonly STORAGE_KEY = "tennisMatchData";
+	private readonly PARTICIPATION_KEY = "teamParticipation";
+	private readonly FORMATIONS_KEY = "savedFormations";
 
 	constructor() {
 		this.state = this.getInitialState();
@@ -29,16 +29,16 @@ export class AppStateManager {
 	private getInitialState(): AppState {
 		return {
 			teams: [],
-			absentTeam: { id: 6, members: [] },
+			absentTeam: { id: 6, name: "未割り当て", members: [], isActive: true },
 			originalTeams: [],
-			matches: {},
+			matches: [],
 			settings: { matchPoint: 7 },
 			teamParticipation: {},
 			selectedMembers: new Set(),
 			formations: {
-				current: 'デフォルト',
-				saved: {}
-			}
+				current: "デフォルト",
+				saved: {},
+			},
 		};
 	}
 
@@ -48,7 +48,7 @@ export class AppStateManager {
 	getState(): AppState {
 		return {
 			...this.state,
-			selectedMembers: new Set(this.state.selectedMembers)
+			selectedMembers: new Set(this.state.selectedMembers),
 		};
 	}
 
@@ -58,7 +58,7 @@ export class AppStateManager {
 	updateTeams(teams: Team[]): void {
 		this.state.teams = [...teams];
 		this.saveToStorage();
-		this.notifyStateChange('teams');
+		this.notifyStateChange("teams");
 	}
 
 	/**
@@ -67,25 +67,35 @@ export class AppStateManager {
 	updateAbsentTeam(team: Team): void {
 		this.state.absentTeam = { ...team };
 		this.saveToStorage();
-		this.notifyStateChange('absentTeam');
+		this.notifyStateChange("absentTeam");
 	}
 
 	/**
 	 * 試合結果を更新
 	 */
-	updateMatches(matches: Record<string, Match>): void {
-		this.state.matches = { ...matches };
+	updateMatches(matches: Match[]): void {
+		this.state.matches = [...matches];
 		this.saveToStorage();
-		this.notifyStateChange('matches');
+		this.notifyStateChange("matches");
 	}
 
 	/**
-	 * 単一試合結果を更新
+	 * 単一試合結果を更新または追加
 	 */
-	updateMatch(matchId: string, match: Match): void {
-		this.state.matches[matchId] = { ...match };
+	updateMatch(match: Match): void {
+		const existingIndex = this.state.matches.findIndex(m =>
+			(m.team1Id === match.team1Id && m.team2Id === match.team2Id) ||
+			(m.team1Id === match.team2Id && m.team2Id === match.team1Id)
+		);
+
+		if (existingIndex >= 0) {
+			this.state.matches[existingIndex] = { ...match };
+		} else {
+			this.state.matches.push({ ...match });
+		}
+
 		this.saveToStorage();
-		this.notifyStateChange('matches');
+		this.notifyStateChange("matches");
 	}
 
 	/**
@@ -94,7 +104,7 @@ export class AppStateManager {
 	updateSettings(settings: Partial<AppSettings>): void {
 		this.state.settings = { ...this.state.settings, ...settings };
 		this.saveToStorage();
-		this.notifyStateChange('settings');
+		this.notifyStateChange("settings");
 	}
 
 	/**
@@ -103,7 +113,7 @@ export class AppStateManager {
 	updateTeamParticipation(teamId: number, isParticipating: boolean): void {
 		this.state.teamParticipation[teamId] = isParticipating;
 		this.saveParticipationToStorage();
-		this.notifyStateChange('teamParticipation');
+		this.notifyStateChange("teamParticipation");
 	}
 
 	/**
@@ -112,7 +122,7 @@ export class AppStateManager {
 	setAllTeamParticipation(participationMap: Record<number, boolean>): void {
 		this.state.teamParticipation = { ...participationMap };
 		this.saveParticipationToStorage();
-		this.notifyStateChange('teamParticipation');
+		this.notifyStateChange("teamParticipation");
 	}
 
 	/**
@@ -120,7 +130,7 @@ export class AppStateManager {
 	 */
 	updateSelectedMembers(members: Set<string>): void {
 		this.state.selectedMembers = new Set(members);
-		this.notifyStateChange('selectedMembers');
+		this.notifyStateChange("selectedMembers");
 	}
 
 	/**
@@ -129,11 +139,11 @@ export class AppStateManager {
 	toggleMemberSelection(memberName: string): boolean {
 		if (this.state.selectedMembers.has(memberName)) {
 			this.state.selectedMembers.delete(memberName);
-			this.notifyStateChange('selectedMembers');
+			this.notifyStateChange("selectedMembers");
 			return false;
 		} else {
 			this.state.selectedMembers.add(memberName);
-			this.notifyStateChange('selectedMembers');
+			this.notifyStateChange("selectedMembers");
 			return true;
 		}
 	}
@@ -143,7 +153,7 @@ export class AppStateManager {
 	 */
 	clearSelectedMembers(): void {
 		this.state.selectedMembers.clear();
-		this.notifyStateChange('selectedMembers');
+		this.notifyStateChange("selectedMembers");
 	}
 
 	/**
@@ -152,14 +162,17 @@ export class AppStateManager {
 	updateFormations(formations: FormationData): void {
 		this.state.formations = { ...formations };
 		this.saveFormationsToStorage();
-		this.notifyStateChange('formations');
+		this.notifyStateChange("formations");
 	}
 
 	/**
 	 * オリジナル構成を設定
 	 */
 	setOriginalTeams(teams: Team[]): void {
-		this.state.originalTeams = teams.map(team => ({ ...team, members: [...team.members] }));
+		this.state.originalTeams = teams.map((team) => ({
+			...team,
+			members: [...team.members],
+		}));
 		this.saveToStorage();
 	}
 
@@ -168,13 +181,13 @@ export class AppStateManager {
 	 */
 	resetToOriginalTeams(): void {
 		if (this.state.originalTeams.length > 0) {
-			this.state.teams = this.state.originalTeams.map(team => ({
+			this.state.teams = this.state.originalTeams.map((team) => ({
 				...team,
-				members: [...team.members]
+				members: [...team.members],
 			}));
 			this.clearSelectedMembers();
 			this.saveToStorage();
-			this.notifyStateChange('teams');
+			this.notifyStateChange("teams");
 		}
 	}
 
@@ -192,21 +205,21 @@ export class AppStateManager {
 
 		this.state.absentTeam.members = [
 			...this.state.absentTeam.members,
-			...allMembers
+			...allMembers,
 		];
 
 		this.clearSelectedMembers();
 		this.saveToStorage();
-		this.notifyStateChange('teams');
-		this.notifyStateChange('absentTeam');
+		this.notifyStateChange("teams");
+		this.notifyStateChange("absentTeam");
 	}
 
 	/**
 	 * 参加チーム一覧を取得
 	 */
 	getParticipatingTeams(): Team[] {
-		return this.state.teams.filter(team =>
-			this.state.teamParticipation[team.id] !== false
+		return this.state.teams.filter(
+			(team) => this.state.teamParticipation[team.id] !== false,
 		);
 	}
 
@@ -222,8 +235,10 @@ export class AppStateManager {
 
 				// 基本データの復元
 				if (parsedData.teams) this.state.teams = parsedData.teams;
-				if (parsedData.absentTeam) this.state.absentTeam = parsedData.absentTeam;
-				if (parsedData.originalTeams) this.state.originalTeams = parsedData.originalTeams;
+				if (parsedData.absentTeam)
+					this.state.absentTeam = parsedData.absentTeam;
+				if (parsedData.originalTeams)
+					this.state.originalTeams = parsedData.originalTeams;
 				if (parsedData.matches) this.state.matches = parsedData.matches;
 				if (parsedData.settings) this.state.settings = parsedData.settings;
 			}
@@ -239,10 +254,9 @@ export class AppStateManager {
 			if (formationsData) {
 				this.state.formations = JSON.parse(formationsData);
 			}
-
 		} catch (error) {
-			console.error('データ読み込みエラー:', error);
-			this.showErrorMessage('保存されたデータの読み込みに失敗しました');
+			console.error("データ読み込みエラー:", error);
+			this.showErrorMessage("保存されたデータの読み込みに失敗しました");
 		}
 	}
 
@@ -256,13 +270,13 @@ export class AppStateManager {
 				absentTeam: this.state.absentTeam,
 				originalTeams: this.state.originalTeams,
 				matches: this.state.matches,
-				settings: this.state.settings
+				settings: this.state.settings,
 			};
 
 			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(dataToSave));
 		} catch (error) {
-			console.error('データ保存エラー:', error);
-			this.showErrorMessage('データの保存に失敗しました');
+			console.error("データ保存エラー:", error);
+			this.showErrorMessage("データの保存に失敗しました");
 		}
 	}
 
@@ -273,10 +287,10 @@ export class AppStateManager {
 		try {
 			localStorage.setItem(
 				this.PARTICIPATION_KEY,
-				JSON.stringify(this.state.teamParticipation)
+				JSON.stringify(this.state.teamParticipation),
 			);
 		} catch (error) {
-			console.error('参加状態保存エラー:', error);
+			console.error("参加状態保存エラー:", error);
 		}
 	}
 
@@ -287,10 +301,10 @@ export class AppStateManager {
 		try {
 			localStorage.setItem(
 				this.FORMATIONS_KEY,
-				JSON.stringify(this.state.formations)
+				JSON.stringify(this.state.formations),
 			);
 		} catch (error) {
-			console.error('編成データ保存エラー:', error);
+			console.error("編成データ保存エラー:", error);
 		}
 	}
 
@@ -298,11 +312,11 @@ export class AppStateManager {
 	 * 状態変更を通知
 	 */
 	private notifyStateChange(changedProperty: keyof AppState): void {
-		const event = new CustomEvent('appStateChange', {
+		const event = new CustomEvent("appStateChange", {
 			detail: {
 				property: changedProperty,
-				state: this.getState()
-			}
+				state: this.getState(),
+			},
 		});
 		document.dispatchEvent(event);
 	}
@@ -311,11 +325,11 @@ export class AppStateManager {
 	 * エラーメッセージを表示
 	 */
 	private showErrorMessage(message: string): void {
-		const event = new CustomEvent('showToast', {
+		const event = new CustomEvent("showToast", {
 			detail: {
 				message,
-				type: 'error'
-			}
+				type: "error",
+			},
 		});
 		document.dispatchEvent(event);
 	}
@@ -324,14 +338,14 @@ export class AppStateManager {
 	 * デバッグ用: 状態をコンソールに出力
 	 */
 	debugLogState(): void {
-		console.group('🎾 App State Debug');
-		console.log('Teams:', this.state.teams);
-		console.log('Absent Team:', this.state.absentTeam);
-		console.log('Matches:', this.state.matches);
-		console.log('Settings:', this.state.settings);
-		console.log('Team Participation:', this.state.teamParticipation);
-		console.log('Selected Members:', Array.from(this.state.selectedMembers));
-		console.log('Formations:', this.state.formations);
+		console.group("🎾 App State Debug");
+		console.log("Teams:", this.state.teams);
+		console.log("Absent Team:", this.state.absentTeam);
+		console.log("Matches:", this.state.matches);
+		console.log("Settings:", this.state.settings);
+		console.log("Team Participation:", this.state.teamParticipation);
+		console.log("Selected Members:", Array.from(this.state.selectedMembers));
+		console.log("Formations:", this.state.formations);
 		console.groupEnd();
 	}
 
@@ -346,10 +360,9 @@ export class AppStateManager {
 
 			// 状態をリセット
 			this.state = this.getInitialState();
-			this.notifyStateChange('teams');
-
+			this.notifyStateChange("teams");
 		} catch (error) {
-			console.error('ストレージクリアエラー:', error);
+			console.error("ストレージクリアエラー:", error);
 		}
 	}
 
@@ -358,15 +371,20 @@ export class AppStateManager {
 	 */
 	getStatistics() {
 		const participatingTeams = this.getParticipatingTeams();
-		const totalMatches = this.getTotalPossibleMatches(participatingTeams.length);
+		const totalMatches = this.getTotalPossibleMatches(
+			participatingTeams.length,
+		);
 		const completedMatches = Object.keys(this.state.matches).length;
 
 		return {
 			totalTeams: participatingTeams.length,
 			totalMatches,
 			completedMatches,
-			progressRate: totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0,
-			pendingMatches: totalMatches - completedMatches
+			progressRate:
+				totalMatches > 0
+					? Math.round((completedMatches / totalMatches) * 100)
+					: 0,
+			pendingMatches: totalMatches - completedMatches,
 		};
 	}
 

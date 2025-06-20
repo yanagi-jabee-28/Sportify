@@ -2,6 +2,8 @@
 	"teams": [
 		{
 			"id": 1,
+			"name": "チーム1",
+			"isActive": true,
 			"members": [
 				"宮田 夢",
 				"伊藤 颯真",
@@ -10,6 +12,8 @@
 		},
 		{
 			"id": 2,
+			"name": "チーム2",
+			"isActive": true,
 			"members": [
 				"ルダン",
 				"平林 智花"
@@ -17,6 +21,8 @@
 		},
 		{
 			"id": 3,
+			"name": "チーム3",
+			"isActive": true,
 			"members": [
 				"笠井 陸",
 				"丸山 美音"
@@ -24,6 +30,8 @@
 		},
 		{
 			"id": 4,
+			"name": "チーム4",
+			"isActive": true,
 			"members": [
 				"関 ふみ菜",
 				"田中 稜久"
@@ -31,6 +39,8 @@
 		},
 		{
 			"id": 5,
+			"name": "チーム5",
+			"isActive": true,
 			"members": [
 				"島津 日向太",
 				"栁原 魁人"

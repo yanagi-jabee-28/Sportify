@@ -3,6 +3,7 @@
 import { appState } from '@/core/state.js';
 import { configManager } from '@/core/config.js';
 import { DOMHelper, EventListenerManager } from '@/utils/dom.js';
+import { Team, Match } from '@/types/index.js';
 
 /**
  * アプリケーションメインクラス
@@ -174,13 +175,56 @@ class TennisMatchApp {
 
 	/**
 	 * モーダル初期化
-	 */
-	private initializeModals(): void {
+	 */	private initializeModals(): void {
 		// スコア入力モーダルの初期設定
 		const scoreModal = DOMHelper.querySelector('#scoreModal');
 		if (scoreModal) {
 			DOMHelper.setAriaAttribute(scoreModal, 'hidden', 'true');
+			this.setupModalEvents(scoreModal);
 		}
+
+		// チーム編集モーダルの初期設定
+		const teamEditorModal = DOMHelper.querySelector('#teamEditorModal');
+		if (teamEditorModal) {
+			DOMHelper.setAriaAttribute(teamEditorModal, 'hidden', 'true');
+			this.setupModalEvents(teamEditorModal);
+		}
+	}
+
+	/**
+	 * モーダルのイベントリスナーを設定
+	 */
+	private setupModalEvents(modal: Element): void {
+		// オーバーレイクリックで閉じる
+		const overlay = DOMHelper.querySelector('.modal-overlay', modal);
+		if (overlay) {
+			EventListenerManager.addEventListener(overlay, 'click', () => {
+				this.closeModal(modal);
+			});
+		}
+
+		// 閉じるボタン
+		const closeBtn = DOMHelper.querySelector('.modal-close', modal);
+		if (closeBtn) {
+			EventListenerManager.addEventListener(closeBtn, 'click', () => {
+				this.closeModal(modal);
+			});
+		}
+
+		// キャンセルボタン
+		const cancelBtn = DOMHelper.querySelector('[data-action="cancel"]', modal);
+		if (cancelBtn) {
+			EventListenerManager.addEventListener(cancelBtn, 'click', () => {
+				this.closeModal(modal);
+			});
+		}
+
+		// ESCキーで閉じる
+		EventListenerManager.addEventListener(document, 'keydown', (e: KeyboardEvent) => {
+			if (e.key === 'Escape' && !modal.hasAttribute('aria-hidden')) {
+				this.closeModal(modal);
+			}
+		});
 	}
 
 	/**
@@ -249,8 +293,15 @@ class TennisMatchApp {
 
 	/**
 	 * チーム管理ボタンのイベント設定
-	 */
-	private setupTeamControlButtons(): void {
+	 */	private setupTeamControlButtons(): void {
+		// チーム編集ボタン
+		const editTeamsBtn = DOMHelper.querySelector('#editTeamsBtn');
+		if (editTeamsBtn) {
+			EventListenerManager.addEventListener(editTeamsBtn, 'click', () => {
+				this.openTeamEditorModal();
+			});
+		}
+
 		const resetTeamsBtn = DOMHelper.querySelector('#resetTeamsBtn');
 		if (resetTeamsBtn) {
 			EventListenerManager.addEventListener(resetTeamsBtn, 'click', () => {
@@ -269,6 +320,14 @@ class TennisMatchApp {
 		if (clearSelectionBtn) {
 			EventListenerManager.addEventListener(clearSelectionBtn, 'click', () => {
 				appState.clearSelectedMembers();
+			});
+		}
+
+		// 試合結果クリアボタン
+		const clearMatchesBtn = DOMHelper.querySelector('#clearMatchesBtn');
+		if (clearMatchesBtn) {
+			EventListenerManager.addEventListener(clearMatchesBtn, 'click', () => {
+				this.clearAllMatches();
 			});
 		}
 	}
@@ -376,15 +435,272 @@ class TennisMatchApp {
 		// TODO: チーム表示実装
 		console.log('🏆 チーム表示更新');
 	}
-
 	private renderMatchTable(): void {
-		// TODO: 対戦表実装
 		console.log('⚡ 対戦表更新');
-	}
 
+		const matchTable = DOMHelper.querySelector('#matchTable') as HTMLTableElement;
+		if (!matchTable) return;
+
+		const state = appState.getState();
+		const activeTeams = state.teams.filter(team => team.isActive);
+
+		if (activeTeams.length === 0) {
+			// チームがない場合は空のテーブルを表示
+			matchTable.innerHTML = `
+				<thead>
+					<tr>
+						<th colspan="100%">アクティブなチームがありません</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			`;
+			this.updateMatchInfo(0, 0);
+			return;
+		}
+
+		// ヘッダー行を生成
+		const thead = matchTable.querySelector('thead');
+		if (thead) {
+			thead.innerHTML = '';
+			const headerRow = DOMHelper.createElement('tr');
+
+			// 左上の空セル
+			const emptyCell = DOMHelper.createElement('th', {
+				className: 'diagonal-cell'
+			});
+			headerRow.appendChild(emptyCell);
+
+			// 各チームのヘッダー
+			activeTeams.forEach(team => {
+				const teamHeader = DOMHelper.createElement('th', {
+					className: 'team-header-cell',
+					scope: 'col'
+				}, team.name);
+				headerRow.appendChild(teamHeader);
+			});
+
+			thead.appendChild(headerRow);
+		}
+
+		// ボディ行を生成
+		const tbody = matchTable.querySelector('tbody');
+		if (tbody) {
+			tbody.innerHTML = '';
+
+			let totalMatches = 0;
+			let completedMatches = 0;
+
+			activeTeams.forEach((team1, i) => {
+				const bodyRow = DOMHelper.createElement('tr');
+
+				// チーム名のヘッダーセル
+				const teamNameCell = DOMHelper.createElement('th', {
+					className: 'team-header-cell',
+					scope: 'row'
+				}, team1.name);
+				bodyRow.appendChild(teamNameCell);
+
+				// 各対戦セル
+				activeTeams.forEach((team2, j) => {
+					const matchCell = DOMHelper.createElement('td', {
+						className: 'match-cell'
+					});
+
+					if (i === j) {
+						// 自分自身との対戦（対角線）
+						matchCell.className = 'diagonal-cell';
+					} else {
+						// 実際の対戦セル
+						totalMatches++;
+
+						// 既存の試合データを確認
+						const existingMatch = state.matches.find(match =>
+							(match.team1Id === team1.id && match.team2Id === team2.id) ||
+							(match.team1Id === team2.id && match.team2Id === team1.id)
+						);
+
+						if (existingMatch) {
+							// 完了した試合
+							completedMatches++;
+							matchCell.classList.add('completed');
+
+							const score1 = existingMatch.team1Id === team1.id ?
+								existingMatch.team1Score : existingMatch.team2Score;
+							const score2 = existingMatch.team1Id === team1.id ?
+								existingMatch.team2Score : existingMatch.team1Score;
+
+							const scoreDiv = DOMHelper.createElement('div', {
+								className: 'match-score'
+							}, `${score1} - ${score2}`);
+
+							const statusDiv = DOMHelper.createElement('div', {
+								className: 'match-status'
+							}, '完了');
+
+							matchCell.appendChild(scoreDiv);
+							matchCell.appendChild(statusDiv);
+						} else if (team1.members.length > 0 && team2.members.length > 0) {
+							// 未完了だが対戦可能
+							matchCell.classList.add('pending');
+
+							const statusDiv = DOMHelper.createElement('div', {
+								className: 'match-status'
+							}, '未実施');
+
+							matchCell.appendChild(statusDiv);
+
+							// クリックでスコア入力モーダルを開く
+							EventListenerManager.addEventListener(matchCell, 'click', () => {
+								this.openScoreInputModal(team1, team2);
+							});
+						} else {
+							// 対戦不可能（メンバーがいない）
+							matchCell.classList.add('unavailable');
+
+							const statusDiv = DOMHelper.createElement('div', {
+								className: 'match-status'
+							}, '対戦不可');
+
+							matchCell.appendChild(statusDiv);
+						}
+					}
+
+					bodyRow.appendChild(matchCell);
+				});
+
+				tbody.appendChild(bodyRow);
+			});
+
+			this.updateMatchInfo(totalMatches, completedMatches);
+		}
+	}
 	private renderStandingsTable(): void {
-		// TODO: 順位表実装
 		console.log('📊 順位表更新');
+
+		const standingsTable = DOMHelper.querySelector('#standingsTable') as HTMLTableElement;
+		const standingsTableBody = DOMHelper.querySelector('#standingsTableBody');
+
+		if (!standingsTable || !standingsTableBody) return;
+
+		const state = appState.getState();
+		const activeTeams = state.teams.filter(team => team.isActive);
+
+		if (activeTeams.length === 0) {
+			standingsTableBody.innerHTML = '<tr><td colspan="9">アクティブなチームがありません</td></tr>';
+			return;
+		}
+
+		// 各チームの統計を計算
+		const teamStats = activeTeams.map(team => {
+			let wins = 0;
+			let losses = 0;
+			let draws = 0;
+			let pointsFor = 0;
+			let pointsAgainst = 0;
+
+			state.matches.forEach(match => {
+				if (match.team1Id === team.id) {
+					pointsFor += match.team1Score;
+					pointsAgainst += match.team2Score;
+
+					if (match.winner === team.id) wins++;
+					else if (match.winner === null) draws++;
+					else losses++;
+				} else if (match.team2Id === team.id) {
+					pointsFor += match.team2Score;
+					pointsAgainst += match.team1Score;
+
+					if (match.winner === team.id) wins++;
+					else if (match.winner === null) draws++;
+					else losses++;
+				}
+			});
+
+			const totalMatches = wins + losses + draws;
+			const winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
+			const pointDifference = pointsFor - pointsAgainst;
+
+			return {
+				team,
+				wins,
+				losses,
+				draws,
+				totalMatches,
+				pointsFor,
+				pointsAgainst,
+				pointDifference,
+				winRate
+			};
+		});
+
+		// 順位でソート（勝率 > 得失点差 > 得点）
+		teamStats.sort((a, b) => {
+			if (a.winRate !== b.winRate) return b.winRate - a.winRate;
+			if (a.pointDifference !== b.pointDifference) return b.pointDifference - a.pointDifference;
+			return b.pointsFor - a.pointsFor;
+		});
+
+		// テーブル行を生成
+		standingsTableBody.innerHTML = '';
+		teamStats.forEach((stat, index) => {
+			const row = DOMHelper.createElement('tr');
+
+			// 順位
+			const rankCell = DOMHelper.createElement('td', {
+				className: `rank-cell rank-${index + 1}`
+			}, (index + 1).toString());
+
+			// チーム名
+			const teamNameCell = DOMHelper.createElement('td', {
+				className: `team-name ${stat.team.isActive ? '' : 'team-inactive'}`
+			}, stat.team.name);
+
+			// 勝利数
+			const winsCell = DOMHelper.createElement('td', {
+				className: 'wins'
+			}, stat.wins.toString());
+
+			// 敗北数
+			const lossesCell = DOMHelper.createElement('td', {
+				className: 'losses'
+			}, stat.losses.toString());
+
+			// 引分数
+			const drawsCell = DOMHelper.createElement('td', {
+				className: 'draws'
+			}, stat.draws.toString());
+
+			// 勝率
+			const winRateCell = DOMHelper.createElement('td', {
+				className: 'win-rate'
+			}, `${stat.winRate.toFixed(1)}%`);
+
+			// 得点
+			const pointsForCell = DOMHelper.createElement('td', {
+				className: 'points'
+			}, stat.pointsFor.toString());
+
+			// 失点
+			const pointsAgainstCell = DOMHelper.createElement('td', {},
+				stat.pointsAgainst.toString());
+
+			// 得失点差
+			const pointDiffCell = DOMHelper.createElement('td', {
+				className: stat.pointDifference >= 0 ? 'wins' : 'losses'
+			}, stat.pointDifference >= 0 ? `+${stat.pointDifference}` : stat.pointDifference.toString());
+
+			row.appendChild(rankCell);
+			row.appendChild(teamNameCell);
+			row.appendChild(winsCell);
+			row.appendChild(lossesCell);
+			row.appendChild(drawsCell);
+			row.appendChild(winRateCell);
+			row.appendChild(pointsForCell);
+			row.appendChild(pointsAgainstCell);
+			row.appendChild(pointDiffCell);
+
+			standingsTableBody.appendChild(row);
+		});
 	}
 
 	private updateSelectedMembersPalette(): void {
@@ -421,10 +737,170 @@ class TennisMatchApp {
 		// TODO: ランダムスコア生成実装
 		this.showToast('ランダムスコア生成機能は準備中です', 'info');
 	}
-
 	private clearAllMatches(): void {
-		appState.updateMatches({});
+		appState.updateMatches([]);
 		this.showToast('全試合結果をクリアしました', 'success');
+	}
+
+	/**
+	 * 対戦情報の更新
+	 */
+	private updateMatchInfo(totalMatches: number, completedMatches: number): void {
+		const totalMatchesEl = DOMHelper.querySelector('#totalMatches');
+		const completedMatchesEl = DOMHelper.querySelector('#completedMatches');
+		const progressRateEl = DOMHelper.querySelector('#progressRate');
+
+		if (totalMatchesEl) DOMHelper.setTextContent(totalMatchesEl, totalMatches.toString());
+		if (completedMatchesEl) DOMHelper.setTextContent(completedMatchesEl, completedMatches.toString());
+		if (progressRateEl) {
+			const rate = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+			DOMHelper.setTextContent(progressRateEl, `${rate}%`);
+		}
+	}
+
+	/**
+	 * スコア入力モーダルを開く
+	 */
+	private openScoreInputModal(team1: Team, team2: Team): void {
+		const scoreModal = DOMHelper.querySelector('#scoreModal');
+		if (!scoreModal) return;
+
+		// チーム名をラベルに設定
+		const team1Label = DOMHelper.querySelector('#scoreTeam1Label');
+		const team2Label = DOMHelper.querySelector('#scoreTeam2Label');
+
+		if (team1Label) DOMHelper.setTextContent(team1Label, team1.name);
+		if (team2Label) DOMHelper.setTextContent(team2Label, team2.name);
+
+		// 既存のスコアがあれば設定
+		const state = appState.getState();
+		const existingMatch = state.matches.find(match =>
+			(match.team1Id === team1.id && match.team2Id === team2.id) ||
+			(match.team1Id === team2.id && match.team2Id === team1.id)
+		);
+
+		const scoreTeam1Input = DOMHelper.querySelector('#scoreTeam1') as HTMLInputElement;
+		const scoreTeam2Input = DOMHelper.querySelector('#scoreTeam2') as HTMLInputElement;
+
+		if (existingMatch) {
+			const score1 = existingMatch.team1Id === team1.id ?
+				existingMatch.team1Score : existingMatch.team2Score;
+			const score2 = existingMatch.team1Id === team1.id ?
+				existingMatch.team2Score : existingMatch.team1Score;
+
+			if (scoreTeam1Input) scoreTeam1Input.value = score1.toString();
+			if (scoreTeam2Input) scoreTeam2Input.value = score2.toString();
+		} else {
+			if (scoreTeam1Input) scoreTeam1Input.value = '';
+			if (scoreTeam2Input) scoreTeam2Input.value = '';
+		}
+
+		// フォーム送信ハンドラーを設定
+		const scoreForm = DOMHelper.querySelector('#scoreForm');
+		if (scoreForm) {
+			// 既存のイベントリスナーをクリア
+			const newForm = scoreForm.cloneNode(true) as HTMLFormElement;
+			scoreForm.parentNode?.replaceChild(newForm, scoreForm);
+
+			EventListenerManager.addEventListener(newForm, 'submit', (e: Event) => {
+				e.preventDefault();
+				this.handleScoreSubmit(team1, team2);
+			});
+		}
+
+		this.openModal(scoreModal);
+	}
+
+	/**
+	 * スコア送信処理
+	 */
+	private handleScoreSubmit(team1: Team, team2: Team): void {
+		const scoreTeam1Input = DOMHelper.querySelector('#scoreTeam1') as HTMLInputElement;
+		const scoreTeam2Input = DOMHelper.querySelector('#scoreTeam2') as HTMLInputElement;
+
+		if (!scoreTeam1Input || !scoreTeam2Input) return;
+
+		const score1 = parseInt(scoreTeam1Input.value, 10);
+		const score2 = parseInt(scoreTeam2Input.value, 10);
+
+		if (isNaN(score1) || isNaN(score2) || score1 < 0 || score2 < 0) {
+			this.showToast('有効なスコアを入力してください', 'error');
+			return;
+		}
+
+		// 試合結果を保存
+		const match: Match = {
+			team1Id: team1.id,
+			team2Id: team2.id,
+			team1Score: score1,
+			team2Score: score2,
+			winner: score1 > score2 ? team1.id : score2 > score1 ? team2.id : null,
+			isDraw: score1 === score2,
+			isCompleted: true
+		};
+
+		appState.updateMatch(match);
+
+		const scoreModal = DOMHelper.querySelector('#scoreModal');
+		if (scoreModal) this.closeModal(scoreModal);
+
+		this.showToast(`${team1.name} vs ${team2.name} のスコアを保存しました`, 'success');
+	}
+
+	/**
+	 * チーム編集モーダルを開く
+	 */
+	private openTeamEditorModal(): void {
+		const teamEditorModal = DOMHelper.querySelector('#teamEditorModal');
+		if (!teamEditorModal) return;
+
+		// 現在のチーム構成をテキストエリアに設定
+		const teamMembersInput = DOMHelper.querySelector('#teamMembersInput') as HTMLTextAreaElement;
+		if (teamMembersInput) {
+			const state = appState.getState();
+			const allMembers = state.teams.flatMap(team => team.members).concat(state.absentTeam.members);
+			teamMembersInput.value = allMembers.join('\n');
+		}
+
+		// フォーム送信ハンドラーを設定
+		const teamEditorForm = DOMHelper.querySelector('#teamEditorForm');
+		if (teamEditorForm) {
+			// 既存のイベントリスナーをクリア
+			const newForm = teamEditorForm.cloneNode(true) as HTMLFormElement;
+			teamEditorForm.parentNode?.replaceChild(newForm, teamEditorForm);
+
+			EventListenerManager.addEventListener(newForm, 'submit', (e: Event) => {
+				e.preventDefault();
+				this.handleTeamEditorSubmit();
+			});
+		}
+
+		this.openModal(teamEditorModal);
+	}
+
+	/**
+	 * チーム編集送信処理
+	 */
+	private handleTeamEditorSubmit(): void {
+		const teamMembersInput = DOMHelper.querySelector('#teamMembersInput') as HTMLTextAreaElement;
+		if (!teamMembersInput) return;
+
+		const membersList = teamMembersInput.value
+			.split('\n')
+			.map(member => member.trim())
+			.filter(member => member.length > 0);
+
+		if (membersList.length === 0) {
+			this.showToast('メンバーを入力してください', 'error');
+			return;
+		}
+
+		// 新しいメンバーリストでチームを再構成
+		// この部分は後で実装
+		this.showToast('チーム編集機能は開発中です', 'info');
+
+		const teamEditorModal = DOMHelper.querySelector('#teamEditorModal');
+		if (teamEditorModal) this.closeModal(teamEditorModal);
 	}
 
 	/**
@@ -437,8 +913,7 @@ class TennisMatchApp {
 
 	/**
 	 * ローディング表示
-	 */
-	private showLoading(): void {
+	 */	private showLoading(): void {
 		this.loadingIndicator = DOMHelper.querySelector('#loadingIndicator');
 		if (this.loadingIndicator) {
 			DOMHelper.setVisible(this.loadingIndicator, true);
@@ -452,6 +927,34 @@ class TennisMatchApp {
 		if (this.loadingIndicator) {
 			DOMHelper.setVisible(this.loadingIndicator, false);
 		}
+	}
+
+	/**
+	 * モーダルを開く
+	 */
+	private openModal(modal: Element): void {
+		DOMHelper.setAriaAttribute(modal, 'hidden', 'false');
+		DOMHelper.setVisible(modal as HTMLElement, true);
+
+		// フォーカスを最初の入力要素に移動
+		const firstInput = DOMHelper.querySelector<HTMLElement>('input, textarea, button', modal);
+		if (firstInput) {
+			setTimeout(() => firstInput.focus(), 100);
+		}
+
+		// bodyのスクロールを無効化
+		document.body.style.overflow = 'hidden';
+	}
+
+	/**
+	 * モーダルを閉じる
+	 */
+	private closeModal(modal: Element): void {
+		DOMHelper.setAriaAttribute(modal, 'hidden', 'true');
+		DOMHelper.setVisible(modal as HTMLElement, false);
+
+		// bodyのスクロールを復元
+		document.body.style.overflow = '';
 	}
 
 	/**

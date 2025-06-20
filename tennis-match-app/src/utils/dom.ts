@@ -9,7 +9,7 @@ export class DOMHelper {
 	 */
 	static querySelector<T extends Element>(
 		selector: string,
-		parent: Document | Element = document
+		parent: Document | Element = document,
 	): T | null {
 		return parent.querySelector<T>(selector);
 	}
@@ -19,7 +19,7 @@ export class DOMHelper {
 	 */
 	static querySelectorAll<T extends Element>(
 		selector: string,
-		parent: Document | Element = document
+		parent: Document | Element = document,
 	): NodeListOf<T> {
 		return parent.querySelectorAll<T>(selector);
 	}
@@ -30,15 +30,15 @@ export class DOMHelper {
 	static createElement<K extends keyof HTMLElementTagNameMap>(
 		tagName: K,
 		attributes?: Record<string, string>,
-		textContent?: string
+		textContent?: string,
 	): HTMLElementTagNameMap[K] {
 		const element = document.createElement(tagName);
 
 		if (attributes) {
 			Object.entries(attributes).forEach(([key, value]) => {
-				if (key === 'className') {
+				if (key === "className") {
 					element.className = value;
-				} else if (key === 'textContent') {
+				} else if (key === "textContent") {
 					element.textContent = value;
 				} else {
 					element.setAttribute(key, value);
@@ -56,7 +56,11 @@ export class DOMHelper {
 	/**
 	 * クラスの切り替え
 	 */
-	static toggleClass(element: Element, className: string, force?: boolean): boolean {
+	static toggleClass(
+		element: Element,
+		className: string,
+		force?: boolean,
+	): boolean {
 		return element.classList.toggle(className, force);
 	}
 
@@ -106,7 +110,7 @@ export class DOMHelper {
 	 * 要素を空にする
 	 */
 	static empty(element: Element): void {
-		element.innerHTML = '';
+		element.innerHTML = "";
 	}
 
 	/**
@@ -134,23 +138,30 @@ export class DOMHelper {
 	 * 要素の後に挿入
 	 */
 	static insertAfter(newElement: Element, referenceElement: Element): void {
-		referenceElement.parentNode?.insertBefore(newElement, referenceElement.nextSibling);
+		referenceElement.parentNode?.insertBefore(
+			newElement,
+			referenceElement.nextSibling,
+		);
 	}
 
 	/**
 	 * HTMLをサニタイズ
 	 */
 	static sanitizeHTML(str: string): string {
-		const div = document.createElement('div');
+		const div = document.createElement("div");
 		div.textContent = str;
 		return div.innerHTML;
 	}
 	/**
-   * 要素が表示されているかチェック
-   */
+	 * 要素が表示されているかチェック
+	 */
 	static isVisible(element: Element): boolean {
 		if (element instanceof HTMLElement) {
-			return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+			return !!(
+				element.offsetWidth ||
+				element.offsetHeight ||
+				element.getClientRects().length
+			);
 		}
 		return element.getClientRects().length > 0;
 	}
@@ -158,11 +169,14 @@ export class DOMHelper {
 	/**
 	 * 要素をスクロール表示
 	 */
-	static scrollIntoView(element: Element, options?: ScrollIntoViewOptions): void {
+	static scrollIntoView(
+		element: Element,
+		options?: ScrollIntoViewOptions,
+	): void {
 		element.scrollIntoView({
-			behavior: 'smooth',
-			block: 'nearest',
-			...options
+			behavior: "smooth",
+			block: "nearest",
+			...options,
 		});
 	}
 
@@ -184,13 +198,15 @@ export class DOMHelper {
 	 * 要素内のテキストを取得
 	 */
 	static getTextContent(element: Element): string {
-		return element.textContent || '';
+		return element.textContent || "";
 	}
 
 	/**
 	 * 要素の値を取得（input要素用）
 	 */
-	static getValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): string {
+	static getValue(
+		element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+	): string {
 		return element.value;
 	}
 
@@ -199,7 +215,7 @@ export class DOMHelper {
 	 */
 	static setValue(
 		element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
-		value: string
+		value: string,
 	): void {
 		element.value = value;
 	}
@@ -222,14 +238,14 @@ export class DOMHelper {
 	 * 要素を無効/有効化
 	 */
 	static setDisabled(element: HTMLElement, disabled: boolean): void {
-		if ('disabled' in element) {
+		if ("disabled" in element) {
 			(element as HTMLInputElement | HTMLButtonElement).disabled = disabled;
 		}
 
 		if (disabled) {
-			element.setAttribute('aria-disabled', 'true');
+			element.setAttribute("aria-disabled", "true");
 		} else {
-			element.removeAttribute('aria-disabled');
+			element.removeAttribute("aria-disabled");
 		}
 	}
 
@@ -245,28 +261,42 @@ export class DOMHelper {
 	 */
 	static setVisible(element: HTMLElement, visible: boolean): void {
 		if (visible) {
-			element.style.display = '';
-			element.removeAttribute('hidden');
-			this.setAriaAttribute(element, 'hidden', 'false');
+			element.style.display = "";
+			element.removeAttribute("hidden");
+			this.setAriaAttribute(element, "hidden", "false");
 		} else {
-			element.style.display = 'none';
-			element.setAttribute('hidden', '');
-			this.setAriaAttribute(element, 'hidden', 'true');
+			element.style.display = "none";
+			element.setAttribute("hidden", "");
+			this.setAriaAttribute(element, "hidden", "true");
 		}
 	}
 
 	/**
 	 * CSSカスタムプロパティを設定
 	 */
-	static setCSSCustomProperty(name: string, value: string, element: HTMLElement = document.documentElement): void {
+	static setCSSCustomProperty(
+		name: string,
+		value: string,
+		element: HTMLElement = document.documentElement,
+	): void {
 		element.style.setProperty(`--${name}`, value);
 	}
 
 	/**
 	 * CSSカスタムプロパティを取得
 	 */
-	static getCSSCustomProperty(name: string, element: HTMLElement = document.documentElement): string {
+	static getCSSCustomProperty(
+		name: string,
+		element: HTMLElement = document.documentElement,
+	): string {
 		return getComputedStyle(element).getPropertyValue(`--${name}`).trim();
+	}
+
+	/**
+	 * 要素のテキストを設定
+	 */
+	static setTextContent(element: Element, text: string): void {
+		element.textContent = text;
 	}
 }
 
@@ -275,7 +305,10 @@ export class DOMHelper {
  * メモリリークを防ぐためのイベントリスナー管理
  */
 export class EventListenerManager {
-	private static listeners = new Map<Element | Document, Map<string, EventListener>>();
+	private static listeners = new Map<
+		Element | Document,
+		Map<string, EventListener>
+	>();
 
 	/**
 	 * イベントリスナーを追加
@@ -284,7 +317,7 @@ export class EventListenerManager {
 		element: Element | Document,
 		event: string,
 		handler: (event: T) => void,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void {
 		// 既存のリスナーを削除
 		this.removeEventListener(element, event);
@@ -306,7 +339,7 @@ export class EventListenerManager {
 		element: Element | Document,
 		event: string,
 		handler: (event: T) => void,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void {
 		this.addEventListener(element, event, handler, options);
 	}
@@ -362,16 +395,16 @@ export class AnimationHelper {
 	 */
 	static fadeIn(element: HTMLElement, duration = 300): Promise<void> {
 		return new Promise((resolve) => {
-			element.style.opacity = '0';
-			element.style.display = '';
+			element.style.opacity = "0";
+			element.style.display = "";
 			element.style.transition = `opacity ${duration}ms ease-in-out`;
 
 			// フレーム遅延を入れて確実にトランジションを発動
 			requestAnimationFrame(() => {
-				element.style.opacity = '1';
+				element.style.opacity = "1";
 
 				setTimeout(() => {
-					element.style.transition = '';
+					element.style.transition = "";
 					resolve();
 				}, duration);
 			});
@@ -384,11 +417,11 @@ export class AnimationHelper {
 	static fadeOut(element: HTMLElement, duration = 300): Promise<void> {
 		return new Promise((resolve) => {
 			element.style.transition = `opacity ${duration}ms ease-in-out`;
-			element.style.opacity = '0';
+			element.style.opacity = "0";
 
 			setTimeout(() => {
-				element.style.display = 'none';
-				element.style.transition = '';
+				element.style.display = "none";
+				element.style.transition = "";
 				resolve();
 			}, duration);
 		});
@@ -400,18 +433,18 @@ export class AnimationHelper {
 	static slideDown(element: HTMLElement, duration = 300): Promise<void> {
 		return new Promise((resolve) => {
 			const height = element.scrollHeight;
-			element.style.height = '0px';
-			element.style.overflow = 'hidden';
-			element.style.display = '';
+			element.style.height = "0px";
+			element.style.overflow = "hidden";
+			element.style.display = "";
 			element.style.transition = `height ${duration}ms ease-in-out`;
 
 			requestAnimationFrame(() => {
 				element.style.height = `${height}px`;
 
 				setTimeout(() => {
-					element.style.height = '';
-					element.style.overflow = '';
-					element.style.transition = '';
+					element.style.height = "";
+					element.style.overflow = "";
+					element.style.transition = "";
 					resolve();
 				}, duration);
 			});
@@ -425,17 +458,17 @@ export class AnimationHelper {
 		return new Promise((resolve) => {
 			const height = element.scrollHeight;
 			element.style.height = `${height}px`;
-			element.style.overflow = 'hidden';
+			element.style.overflow = "hidden";
 			element.style.transition = `height ${duration}ms ease-in-out`;
 
 			requestAnimationFrame(() => {
-				element.style.height = '0px';
+				element.style.height = "0px";
 
 				setTimeout(() => {
-					element.style.display = 'none';
-					element.style.height = '';
-					element.style.overflow = '';
-					element.style.transition = '';
+					element.style.display = "none";
+					element.style.height = "";
+					element.style.overflow = "";
+					element.style.transition = "";
 					resolve();
 				}, duration);
 			});

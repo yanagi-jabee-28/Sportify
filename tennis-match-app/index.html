@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>硬式テニス試合管理システム</title>
+
+	<!-- Meta Tags -->
+	<meta name="description" content="硬式テニスのチーム戦管理・試合記録・順位計算を行う高機能Webアプリケーション">
+	<meta name="keywords" content="テニス,試合管理,チーム戦,順位,記録">
+	<meta name="author" content="Tennis Match Management System">
+
+	<!-- Favicon -->
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+	<!-- PWA Support -->
+	<meta name="theme-color" content="#1976D2">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="default">
+	<meta name="apple-mobile-web-app-title" content="テニス試合管理">
+
+	<!-- Preload Critical Resources -->
+	<link rel="preload" href="/css/styles.css" as="style">
+
+	<!-- Stylesheets -->
+	<link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+	<!-- Header -->
+	<header class="app-header">
+		<div class="header-container">
+			<h1 class="app-title">
+				<span class="title-icon">🎾</span>
+				硬式テニス試合管理システム
+			</h1>
+
+			<!-- Settings Panel -->
+			<div class="settings-panel">
+				<div class="setting-group">
+					<label for="matchPointInput" class="setting-label">マッチポイント:</label>
+					<input type="number" id="matchPointInput" class="setting-input" min="1" max="99" value="7"
+						aria-label="マッチポイント設定">
+				</div>
+
+				<!-- Export Button -->
+				<button id="exportBtn" class="btn btn-secondary" aria-label="CSV形式でデータをエクスポート">
+					📊 CSVエクスポート
+				</button>
+
+				<!-- Debug Panel Toggle -->
+				<button id="debugToggleBtn" class="btn btn-debug" aria-label="デバッグパネルの表示切り替え">
+					🛠️ デバッグ
+				</button>
+			</div>
+		</div>
+	</header>
+
+	<!-- Main Content -->
+	<main class="app-main">
+		<!-- Team Management Section -->
+		<section class="team-section" aria-labelledby="team-section-title">
+			<div class="section-header">
+				<h2 id="team-section-title" class="section-title">チーム編成</h2>
+
+				<!-- Team Control Buttons -->
+				<div class="team-controls">
+					<button id="resetTeamsBtn" class="btn btn-secondary" aria-label="チーム編成をオリジナル構成に戻す">
+						🔄 オリジナル構成に戻す
+					</button>
+
+					<button id="clearAllMembersBtn" class="btn btn-warning" aria-label="全メンバーを未割り当て状態にする">
+						🗑️ 全メンバーをクリア
+					</button>
+				</div>
+			</div>
+
+			<!-- Member Selection Palette -->
+			<div class="member-palette" aria-labelledby="selected-members-title">
+				<h3 id="selected-members-title" class="palette-title">
+					選択中のメンバー
+					<span id="selectedCount" class="count-badge">0</span>
+				</h3>
+				<div id="selectedMembersList" class="selected-members-list" role="list">
+					<!-- 選択されたメンバーが表示される -->
+				</div>
+				<button id="clearSelectionBtn" class="btn btn-sm btn-secondary" aria-label="メンバー選択をクリア">
+					選択をクリア
+				</button>
+			</div>
+
+			<!-- Teams Container -->
+			<div class="teams-container" role="region" aria-label="チーム一覧">
+				<div id="teamsList" class="teams-grid">
+					<!-- チームがここに動的に生成される -->
+				</div>
+
+				<!-- Unassigned Members -->
+				<div class="unassigned-section">
+					<div class="team-card unassigned-team">
+						<div class="team-header unassigned-header">
+							<h3 class="team-title">未割り当てメンバー</h3>
+							<span id="unassignedCount" class="member-count">0</span>
+						</div>
+						<div id="unassignedMembersList" class="team-members" role="list">
+							<!-- 未割り当てメンバーが表示される -->
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- Match Results Section -->
+		<section class="match-section" aria-labelledby="match-section-title">
+			<div class="section-header">
+				<h2 id="match-section-title" class="section-title">対戦表</h2>
+				<div class="match-info">
+					<span class="info-item">
+						<span class="info-label">総試合数:</span>
+						<span id="totalMatches" class="info-value">0</span>
+					</span>
+					<span class="info-item">
+						<span class="info-label">完了:</span>
+						<span id="completedMatches" class="info-value">0</span>
+					</span>
+					<span class="info-item">
+						<span class="info-label">進行率:</span>
+						<span id="progressRate" class="info-value">0%</span>
+					</span>
+				</div>
+			</div>
+
+			<div class="match-table-container">
+				<table id="matchTable" class="match-table" role="table" aria-label="試合結果表">
+					<thead>
+						<!-- ヘッダーは動的に生成される -->
+					</thead>
+					<tbody>
+						<!-- 対戦結果は動的に生成される -->
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<!-- Standings Section -->
+		<section class="standings-section" aria-labelledby="standings-section-title">
+			<div class="section-header">
+				<h2 id="standings-section-title" class="section-title">順位表</h2>
+			</div>
+
+			<div class="standings-table-container">
+				<table id="standingsTable" class="standings-table" role="table" aria-label="チーム順位表">
+					<thead>
+						<tr>
+							<th scope="col">順位</th>
+							<th scope="col">チーム</th>
+							<th scope="col">勝</th>
+							<th scope="col">負</th>
+							<th scope="col">分</th>
+							<th scope="col">勝率</th>
+							<th scope="col">得点</th>
+							<th scope="col">失点</th>
+							<th scope="col">得失差</th>
+						</tr>
+					</thead>
+					<tbody id="standingsTableBody">
+						<!-- 順位データは動的に生成される -->
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<!-- Debug Panel (Hidden by default) -->
+		<section id="debugPanel" class="debug-panel" aria-labelledby="debug-panel-title" hidden>
+			<div class="section-header">
+				<h2 id="debug-panel-title" class="section-title">🛠️ デバッグパネル</h2>
+			</div>
+
+			<div class="debug-controls">
+				<button id="generateRandomScoresBtn" class="btn btn-debug" aria-label="テスト用のランダムスコアを生成">
+					🎲 ランダムスコア生成
+				</button>
+
+				<button id="clearAllMatchesBtn" class="btn btn-danger" aria-label="全試合結果を削除">
+					🗑️ 全試合結果をクリア
+				</button>
+
+				<button id="exportDebugDataBtn" class="btn btn-info" aria-label="デバッグ用データをエクスポート">
+					📋 デバッグデータ出力
+				</button>
+			</div>
+		</section>
+	</main>
+
+	<!-- Modal Dialogs -->
+
+	<!-- Score Input Modal -->
+	<div id="scoreModal" class="modal" role="dialog" aria-labelledby="score-modal-title" aria-hidden="true">
+		<div class="modal-overlay"></div>
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3 id="score-modal-title" class="modal-title">スコア入力</h3>
+				<button class="modal-close" aria-label="モーダルを閉じる">&times;</button>
+			</div>
+
+			<div class="modal-body">
+				<form id="scoreForm" class="score-form">
+					<div class="score-inputs">
+						<div class="score-input-group">
+							<label for="scoreTeam1" class="score-label" id="scoreTeam1Label">チーム1</label>
+							<input type="number" id="scoreTeam1" class="score-input" min="0" max="99"
+								aria-labelledby="scoreTeam1Label" required>
+						</div>
+
+						<div class="score-vs">VS</div>
+
+						<div class="score-input-group">
+							<label for="scoreTeam2" class="score-label" id="scoreTeam2Label">チーム2</label>
+							<input type="number" id="scoreTeam2" class="score-input" min="0" max="99"
+								aria-labelledby="scoreTeam2Label" required>
+						</div>
+					</div>
+
+					<div class="modal-actions">
+						<button type="button" class="btn btn-secondary" data-action="cancel">キャンセル</button>
+						<button type="submit" class="btn btn-primary">保存</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<!-- Team Editor Modal -->
+	<div id="teamEditorModal" class="modal" role="dialog" aria-labelledby="team-editor-title" aria-hidden="true">
+		<div class="modal-overlay"></div>
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3 id="team-editor-title" class="modal-title">チーム編集</h3>
+				<button class="modal-close" aria-label="モーダルを閉じる">&times;</button>
+			</div>
+
+			<div class="modal-body">
+				<form id="teamEditorForm" class="team-editor-form">
+					<div class="form-group">
+						<label for="teamMembersInput" class="form-label">メンバー (1行に1名)</label>
+						<textarea id="teamMembersInput" class="form-textarea" rows="10" placeholder="メンバー名を入力..."
+							aria-describedby="team-members-help"></textarea>
+						<small id="team-members-help" class="form-help">
+							各行に1つのメンバー名を入力してください
+						</small>
+					</div>
+
+					<div class="modal-actions">
+						<button type="button" class="btn btn-secondary" data-action="cancel">キャンセル</button>
+						<button type="submit" class="btn btn-primary">保存</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<!-- Toast Notification -->
+	<div id="toast" class="toast" role="alert" aria-live="polite" aria-hidden="true">
+		<div class="toast-content">
+			<span class="toast-icon"></span>
+			<span class="toast-message"></span>
+		</div>
+		<button class="toast-close" aria-label="通知を閉じる">&times;</button>
+	</div>
+
+	<!-- Loading Indicator -->
+	<div id="loadingIndicator" class="loading-indicator" aria-hidden="true">
+		<div class="loading-spinner"></div>
+		<span class="loading-text">読み込み中...</span>
+	</div>
+
+	<!-- Scripts -->
+	<script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
